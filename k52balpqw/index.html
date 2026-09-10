@@ -116,6 +116,9 @@
 	</aside>
 
 	<script>
+		// Register free token at https://aqicn.org/api/ and replace the value below
+		const WAQI_TOKEN = 'YOUR_WAQI_TOKEN';
+
 		const dateDisplay = document.getElementById('dateDisplay');
 		const timeDisplay = document.getElementById('timeDisplay');
 		const forecastRow  = document.getElementById('forecastRow');
@@ -194,15 +197,25 @@
 		}
 
 		async function loadAirQuality() {
+			// AQI — Anaheim EPA station via WAQI
 			try {
-				const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=us_aqi,uv_index&timezone=America%2FLos_Angeles');
+				const res = await fetch(`https://api.waqi.info/feed/anaheim/?token=${WAQI_TOKEN}`);
 				if (!res.ok) throw new Error();
 				const data = await res.json();
-				const aqi = data.current.us_aqi;
+				if (data.status !== 'ok') throw new Error();
+				const aqi = data.data.aqi;
 				const [aqiLabel, aqiColor] = aqiCategory(aqi);
 				aqiValue.textContent = aqi;
 				aqiValue.style.color = aqiColor;
 				aqiDesc.textContent = aqiLabel;
+			} catch {
+				aqiDesc.textContent = 'Unavailable';
+			}
+			// UV — Open-Meteo current value
+			try {
+				const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=uv_index&timezone=America%2FLos_Angeles');
+				if (!res.ok) throw new Error();
+				const data = await res.json();
 				const uv = data.current.uv_index;
 				if (uv != null) {
 					const [uvLabel, uvColor] = uvCategory(uv);
@@ -211,7 +224,7 @@
 					uvDesc.textContent = uvLabel;
 				}
 			} catch {
-				aqiDesc.textContent = 'Unavailable';
+				uvDesc.textContent = 'Unavailable';
 			}
 		}
 
