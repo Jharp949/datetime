@@ -197,19 +197,35 @@
 		}
 
 		async function loadAirQuality() {
-			// AQI — Anaheim EPA station via WAQI
-			try {
-				const res = await fetch(`https://api.waqi.info/feed/anaheim/?token=${WAQI_TOKEN}`);
-				if (!res.ok) throw new Error();
-				const data = await res.json();
-				if (data.status !== 'ok') throw new Error();
-				const aqi = data.data.aqi;
-				const [aqiLabel, aqiColor] = aqiCategory(aqi);
-				aqiValue.textContent = aqi;
-				aqiValue.style.color = aqiColor;
-				aqiDesc.textContent = aqiLabel;
-			} catch {
-				aqiDesc.textContent = 'Unavailable';
+			// AQI — Anaheim EPA station via WAQI; falls back to Open-Meteo if token is unset
+			let aqiLoaded = false;
+			if (WAQI_TOKEN !== 'YOUR_WAQI_TOKEN') {
+				try {
+					const res = await fetch(`https://api.waqi.info/feed/anaheim/?token=${WAQI_TOKEN}`);
+					if (!res.ok) throw new Error();
+					const data = await res.json();
+					if (data.status !== 'ok') throw new Error();
+					const aqi = data.data.aqi;
+					const [aqiLabel, aqiColor] = aqiCategory(aqi);
+					aqiValue.textContent = aqi;
+					aqiValue.style.color = aqiColor;
+					aqiDesc.textContent = aqiLabel;
+					aqiLoaded = true;
+				} catch { /* fall through to Open-Meteo */ }
+			}
+			if (!aqiLoaded) {
+				try {
+					const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=us_aqi&timezone=America%2FLos_Angeles');
+					if (!res.ok) throw new Error();
+					const data = await res.json();
+					const aqi = data.current.us_aqi;
+					const [aqiLabel, aqiColor] = aqiCategory(aqi);
+					aqiValue.textContent = aqi;
+					aqiValue.style.color = aqiColor;
+					aqiDesc.textContent = aqiLabel;
+				} catch {
+					aqiDesc.textContent = 'Unavailable';
+				}
 			}
 			// UV — Open-Meteo current value
 			try {
