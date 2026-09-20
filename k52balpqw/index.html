@@ -197,23 +197,41 @@
 		}
 
 		async function loadAirQuality() {
-			// AQI — AirNow EPA Anaheim reporting area; falls back to Open-Meteo if key is unset
-			let aqiLoaded = false;
-			if (AIRNOW_KEY !== 'YOUR_AIRNOW_KEY') {
-				try {
-					const res = await fetch(`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${AIRNOW_KEY}`);
-					if (!res.ok) throw new Error();
-					const obs = await res.json();
-					if (!obs.length) throw new Error();
-					const aqi = Math.max(...obs.map(o => o.AQI));
-					const [aqiLabel, aqiColor] = aqiCategory(aqi);
-					aqiValue.textContent = aqi;
-					aqiValue.style.color = aqiColor;
-					aqiDesc.textContent = aqiLabel;
-					aqiLoaded = true;
-				} catch { /* fall through to Open-Meteo */ }
-			}
-			if (!aqiLoaded) {
+			// AQI and UV fired in parallel; AirNow aborts after 5 s and falls back to Open-Meteo
+			const uvPromise = fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=uv_index&timezone=America%2FLos_Angeles')
+				.then(r => r.ok ? r.json() : Promise.reject())
+				.then(data => {
+					const uv = data.current.uv_index;
+					if (uv != null) {
+						const [uvLabel, uvColor] = uvCategory(uv);
+						uvValue.textContent = uv.toFixed(1);
+						uvValue.style.color = uvColor;
+						uvDesc.textContent = uvLabel;
+					}
+				})
+				.catch(() => { uvDesc.textContent = 'Unavailable'; });
+
+			const aqiPromise = (async () => {
+				if (AIRNOW_KEY !== 'YOUR_AIRNOW_KEY') {
+					try {
+						const controller = new AbortController();
+						const timer = setTimeout(() => controller.abort(), 5000);
+						const res = await fetch(
+							`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${AIRNOW_KEY}`,
+							{ signal: controller.signal }
+						);
+						clearTimeout(timer);
+						if (!res.ok) throw new Error();
+						const obs = await res.json();
+						if (!obs.length) throw new Error();
+						const aqi = Math.max(...obs.map(o => o.AQI));
+						const [aqiLabel, aqiColor] = aqiCategory(aqi);
+						aqiValue.textContent = aqi;
+						aqiValue.style.color = aqiColor;
+						aqiDesc.textContent = aqiLabel;
+						return;
+					} catch { /* fall through to Open-Meteo */ }
+				}
 				try {
 					const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=us_aqi&timezone=America%2FLos_Angeles');
 					if (!res.ok) throw new Error();
@@ -226,22 +244,9 @@
 				} catch {
 					aqiDesc.textContent = 'Unavailable';
 				}
-			}
-			// UV — Open-Meteo current value
-			try {
-				const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=uv_index&timezone=America%2FLos_Angeles');
-				if (!res.ok) throw new Error();
-				const data = await res.json();
-				const uv = data.current.uv_index;
-				if (uv != null) {
-					const [uvLabel, uvColor] = uvCategory(uv);
-					uvValue.textContent = uv.toFixed(1);
-					uvValue.style.color = uvColor;
-					uvDesc.textContent = uvLabel;
-				}
-			} catch {
-				uvDesc.textContent = 'Unavailable';
-			}
+			})();
+
+			await Promise.all([aqiPromise, uvPromise]);
 		}
 
 		loadWeather();
