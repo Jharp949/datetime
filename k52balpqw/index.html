@@ -117,7 +117,7 @@
 
 	<script>
 		// Register free key at https://docs.airnow.gov/ and replace the value below
-		const AIRNOW_KEY = 'YOUR_AIRNOW_KEY';
+		const AIRNOW_KEY = '663F5F72-EB22-4DA1-8EBC-622DCDBF3EF9';
 
 		const dateDisplay = document.getElementById('dateDisplay');
 		const timeDisplay = document.getElementById('timeDisplay');
@@ -201,7 +201,7 @@
 			let aqiLoaded = false;
 			if (AIRNOW_KEY !== 'YOUR_AIRNOW_KEY') {
 				try {
-					const res = await fetch(`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${'663F5F72-EB22-4DA1-8EBC-622DCDBF3EF9'}`);
+					const res = await fetch(`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${AIRNOW_KEY}`);
 					if (!res.ok) throw new Error();
 					const obs = await res.json();
 					if (!obs.length) throw new Error();
