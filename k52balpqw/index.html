@@ -116,9 +116,6 @@
 	</aside>
 
 	<script>
-		// Register free key at https://docs.airnow.gov/ and replace the value below
-		const AIRNOW_KEY = '663F5F72-EB22-4DA1-8EBC-622DCDBF3EF9';
-
 		const dateDisplay = document.getElementById('dateDisplay');
 		const timeDisplay = document.getElementById('timeDisplay');
 		const forecastRow  = document.getElementById('forecastRow');
@@ -197,41 +194,16 @@
 		}
 
 		async function loadAirQuality() {
-			// AQI — AirNow EPA Anaheim reporting area; falls back to Open-Meteo if key is unset
-			let aqiLoaded = false;
-			if (AIRNOW_KEY !== 'YOUR_AIRNOW_KEY') {
-				try {
-					const res = await fetch(`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${AIRNOW_KEY}`);
-					if (!res.ok) throw new Error();
-					const obs = await res.json();
-					if (!obs.length) throw new Error();
-					const aqi = Math.max(...obs.map(o => o.AQI));
-					const [aqiLabel, aqiColor] = aqiCategory(aqi);
-					aqiValue.textContent = aqi;
-					aqiValue.style.color = aqiColor;
-					aqiDesc.textContent = aqiLabel;
-					aqiLoaded = true;
-				} catch { /* fall through to Open-Meteo */ }
-			}
-			if (!aqiLoaded) {
-				try {
-					const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=us_aqi&timezone=America%2FLos_Angeles');
-					if (!res.ok) throw new Error();
-					const data = await res.json();
-					const aqi = data.current.us_aqi;
-					const [aqiLabel, aqiColor] = aqiCategory(aqi);
-					aqiValue.textContent = aqi;
-					aqiValue.style.color = aqiColor;
-					aqiDesc.textContent = aqiLabel;
-				} catch {
-					aqiDesc.textContent = 'Unavailable';
-				}
-			}
-			// UV — Open-Meteo current value
+			const url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.81207&longitude=-117.91898&current=us_aqi,uv_index&timezone=America%2FLos_Angeles';
 			try {
-				const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=33.8121&longitude=-117.9190&current=uv_index&timezone=America%2FLos_Angeles');
+				const res = await fetch(url);
 				if (!res.ok) throw new Error();
 				const data = await res.json();
+				const aqi = data.current.us_aqi;
+				const [aqiLabel, aqiColor] = aqiCategory(aqi);
+				aqiValue.textContent = aqi;
+				aqiValue.style.color = aqiColor;
+				aqiDesc.textContent = aqiLabel;
 				const uv = data.current.uv_index;
 				if (uv != null) {
 					const [uvLabel, uvColor] = uvCategory(uv);
@@ -240,6 +212,7 @@
 					uvDesc.textContent = uvLabel;
 				}
 			} catch {
+				aqiDesc.textContent = 'Unavailable';
 				uvDesc.textContent = 'Unavailable';
 			}
 		}
