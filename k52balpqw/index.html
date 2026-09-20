@@ -116,8 +116,8 @@
 	</aside>
 
 	<script>
-		// Register free token at https://aqicn.org/api/ and replace the value below
-		const WAQI_TOKEN = 'YOUR_WAQI_TOKEN';
+		// Register free key at https://docs.airnow.gov/ and replace the value below
+		const AIRNOW_KEY = 'YOUR_AIRNOW_KEY';
 
 		const dateDisplay = document.getElementById('dateDisplay');
 		const timeDisplay = document.getElementById('timeDisplay');
@@ -197,15 +197,15 @@
 		}
 
 		async function loadAirQuality() {
-			// AQI — Anaheim EPA station via WAQI; falls back to Open-Meteo if token is unset
+			// AQI — AirNow EPA Anaheim reporting area; falls back to Open-Meteo if key is unset
 			let aqiLoaded = false;
-			if (WAQI_TOKEN !== 'YOUR_WAQI_TOKEN') {
+			if (AIRNOW_KEY !== 'YOUR_AIRNOW_KEY') {
 				try {
-					const res = await fetch(`https://api.waqi.info/feed/anaheim/?token=${WAQI_TOKEN}`);
+					const res = await fetch(`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${'663F5F72-EB22-4DA1-8EBC-622DCDBF3EF9'}`);
 					if (!res.ok) throw new Error();
-					const data = await res.json();
-					if (data.status !== 'ok') throw new Error();
-					const aqi = data.data.aqi;
+					const obs = await res.json();
+					if (!obs.length) throw new Error();
+					const aqi = Math.max(...obs.map(o => o.AQI));
 					const [aqiLabel, aqiColor] = aqiCategory(aqi);
 					aqiValue.textContent = aqi;
 					aqiValue.style.color = aqiColor;
