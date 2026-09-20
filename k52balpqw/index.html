@@ -214,13 +214,9 @@
 			const aqiPromise = (async () => {
 				if (AIRNOW_KEY !== 'YOUR_AIRNOW_KEY') {
 					try {
-						const controller = new AbortController();
-						const timer = setTimeout(() => controller.abort(), 10000);
 						const res = await fetch(
-							`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${AIRNOW_KEY}`,
-							{ signal: controller.signal }
+							`https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=92802&distance=25&API_KEY=${AIRNOW_KEY}`
 						);
-						clearTimeout(timer);
 						if (!res.ok) throw new Error();
 						const obs = await res.json();
 						if (!obs.length) throw new Error();
